@@ -1,3 +1,4 @@
+#!/usr/bin/awk -f
 {
     if (NF==0) {
         if (cal > max1) {
