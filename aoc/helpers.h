@@ -158,7 +158,8 @@ namespace aoc {
                 case '9':
                     out *= 10; out += 9; break;
                 case '-':
-                    if (first) { neg = true; continue; }
+                    if (first) { neg = true; break; }
+                    [[fallthrough]];
                 default:
                     throw std::runtime_error("Not an integer: `" + std::string(sv) + "'");
             }
