@@ -1,4 +1,6 @@
 #include "aoc/helpers.h"
+#include <numeric>
+#include <vector>
 
 namespace {
   using MappedFileSource = aoc::MappedFileSource<char>;
@@ -11,34 +13,34 @@ int main(int argc, char** argv) {
   std::string_view f(m->data(), m->size());
 
   std::string_view line;
-  size_t max_cal = 0;
-  size_t max_elf = 0;
-  size_t elf_idx = 0;
-  size_t cal = 0;
+
+  std::vector<int64_t>v;
+  std::make_heap(v.begin(), v.end(), std::greater<>{});
+  int64_t cal = 0;
   while (aoc::getline(f, line, "\r\n", true)) {
     if (line.empty()) {
-      elf_idx++;
-      if (cal > max_cal) {
-        max_elf = elf_idx;
-        max_cal = cal;
-      }
+      v.push_back(cal);
+      std::push_heap(v.begin(), v.end(), std::greater<>{});
       cal = 0;
-
       continue;
-
     }
     cal += aoc::stoi(line);
-    DEBUG_PRINT(max_elf << ":" << max_cal << ":" << line << ":" << cal) ;
   }
 
-  elf_idx++;
-  if (cal > max_cal) {
-    max_elf = elf_idx;
-    max_cal = cal;
-  }
-  cal = 0;
+  v.push_back(cal);
+  std::push_heap(v.begin(), v.end(), std::greater<>{});
+  std::sort_heap(v.begin(), v.end(), std::greater<>{});
 
-  aoc::print_result(1, max_cal);
+  size_t part1 = v.front();
+  size_t idx = 0;
+  const auto first_three = [&idx](size_t l, size_t r) {
+    idx++;
+    if (idx > 3) { return l; }
+    return l + r;
+  };
+  size_t part2 = std::accumulate(v.begin(), v.end(), 0U, first_three);
+
+  aoc::print_results(part1, part2);
   
   return 0;
 }
