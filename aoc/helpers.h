@@ -14,6 +14,7 @@
 #include <cassert>
 #include <functional>
 #include <iomanip>
+#include "log.h"
 
 #ifndef NDEBUG
 #define DEBUG(x) do { \
@@ -24,6 +25,7 @@
 #endif
 
 #define DEBUG_PRINT(x) do { DEBUG(std::cout << __func__ << ":" << __LINE__ << ": " << x << std::endl); } while (0)
+#define DEBUG_LOG(...) do { DEBUG(LOG(__func__, __VA_ARGS__)); } while (0)
 
 #define STRING_CONSTANT(symbol, value) constexpr std::string_view symbol(value)
 
