@@ -34,7 +34,7 @@ if [[ $# > 0 ]]; then
             echo "Setting up new day in ${new_day}"
             mkdir -p "${new_day}"
             cp "${ROOT_DIR}/template"/* "${new_day}/"
-            touch "${ROOT_DIR}/inputs/Day${1}.txt" "${ROOT_DIR}/inputs/Day${1}Sample.txt"
+            touch "${ROOT_DIR}/inputs/Day${1}.txt"
             exit 0
             ;;
         run)
