@@ -88,47 +88,24 @@ abdefghi)");
     return g;
   };
 
-  const auto print_grid = [](const Grid& g) {
-    for (size_t y = 0; y < g.height; y++) {
-      for (size_t x = 0; x < g.width; x++) {
-        const auto off = grid_off(g, x, y);
-        auto &p = g.map.at(off);
-        if (p.second == -1) {
-          std::cout << '.';
-        } else {
-          std::cout << p.second;
-        }
-      }
-      std::cout << std::endl;
-    }
-  };
-
-  const auto print_grid_heights = [](const Grid& g) {
-    for (size_t y = 0; y < g.height; y++) {
-      for (size_t x = 0; x < g.width; x++) {
-        const auto off = grid_off(g, x, y);
-        auto &p = g.map.at(off);
-        std::cout << static_cast<char>(p.first + 'a');
-      }
-      std::cout << std::endl;
-    }
-  };
-
   void flood_fill(Grid& g, size_t x, size_t y, int32_t last, int64_t step) {
     auto& p = g.map.at(grid_off(g, x, y));
-    // already colored
     DEBUG_LOG(x, y, last, p.first, p.second, step);
+    // already colored
     if (p.second != -1 && step >= p.second) {
       return;
     }
 
     const auto diff = last - p.first;
+    // Can't get to here
     if (diff > 1) { return; }
 
     p.second = step++;
+    // This is a possilbe start point for part 2
     if (p.first == 0) {
       g.min_a = std::min(g.min_a, p.second);
     }
+    // This is the start, return, no need to take another step
     if (x == g.start.first && y == g.start.second) {
       return;
     }

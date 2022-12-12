@@ -1,4 +1,5 @@
 #include "aoc/helpers.h"
+#include <vector>
 
 namespace {
   using MappedFileSource = aoc::MappedFileSource<char>;

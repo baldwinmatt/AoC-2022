@@ -1,6 +1,7 @@
 #include "aoc/helpers.h"
 #include <utility>
 #include <optional>
+#include <vector>
 
 namespace {
   using Result = std::pair<int, int>;
