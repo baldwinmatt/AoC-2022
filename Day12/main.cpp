@@ -27,6 +27,7 @@ abdefghi)");
 
     Point start;
     Point dst;
+    int64_t min_a;
   };
 
   const auto grid_off = [](const Grid& g, size_t x, size_t y) {
@@ -125,6 +126,9 @@ abdefghi)");
     if (diff > 1) { return; }
 
     p.second = step++;
+    if (p.first == 0) {
+      g.min_a = std::min(g.min_a, p.second);
+    }
     if (x == g.start.first && y == g.start.second) {
       return;
     }
@@ -156,14 +160,11 @@ int main(int argc, char** argv) {
     g = LoadInput(f);
   }
 
+  g.min_a = INT64_MAX;
   flood_fill(g, g.dst.first, g.dst.second, 26, 0);
 
   int64_t part1 = g.map.at(grid_off(g, g.start.first, g.start.second)).second;
-  int64_t part2 = INT64_MAX;
-
-  for (const auto& p : g.map) {
-    if (p.first == 0 && p.second != -1) { part2 = std::min(p.second, part2); }
-  }
+  int64_t part2 = g.min_a;
 
   aoc::print_results(part1, part2);
 
