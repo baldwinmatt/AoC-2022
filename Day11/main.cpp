@@ -37,7 +37,11 @@ Monkey 3:
   constexpr size_t SR_Part1 = 10605;
   constexpr size_t SR_Part2 = 2713310158;
 
+#ifndef NDEBUG
   using ItemList = std::list<int64_t>;
+#else
+  using ItemList = std::queue<int64_t>;
+#endif
 
   enum class OpType {
     None = 0,
@@ -71,7 +75,12 @@ Monkey 3:
 
     void takeTurn(std::vector<Monkey>& ms, int64_t mod) {
       while (!items_.empty()) {
-        auto in = items_.front(); items_.pop_front();
+        auto in = items_.front();
+#ifndef NDEBUG
+        items_.pop_front();
+#else
+        items_.pop();
+#endif
         auto item = performOperation(in); // increase worry
           // decrease worry
         if (!mod) { item /= 3; }
@@ -86,7 +95,11 @@ Monkey 3:
     }
 
     void addItem(int64_t i) {
+#ifndef NDEBUG
       items_.push_back(i);
+#else
+      items_.push(i);
+#endif
     }
 
     void setOperation(OpType o) {
@@ -150,6 +163,7 @@ Monkey 3:
   STRING_CONSTANT(STR_TRUE,      "    If true: throw to monkey ");
   STRING_CONSTANT(STR_FALSE,     "    If false: throw to monkey ");
 
+#ifndef NDEBUG
   std::ostream& operator<<(std::ostream& os, const Monkey& m) {
     os << "Monkey (" << m.insepected_ << "): " << std::endl;
     os << STR_ITEMS;
@@ -163,6 +177,7 @@ Monkey 3:
     os << STR_FALSE << m.false_ << std::endl;
     return os;
   }
+#endif
 
   const auto LoadInput = [](auto f) {
     Monkeys ms;
