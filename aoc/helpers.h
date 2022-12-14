@@ -40,6 +40,36 @@
 namespace aoc {
 
     using Point = std::pair<int, int>;
+
+}
+
+aoc::Point operator+(const aoc::Point& lhs, const aoc::Point& rhs) {
+    aoc::Point out{lhs.first + rhs.first, lhs.second + rhs.second};
+    return out;
+}
+
+aoc::Point operator*(const aoc::Point& lhs, const int x) {
+    aoc::Point out{lhs.first * x, lhs.second * x};
+    return out;
+}
+
+aoc::Point& operator+=(aoc::Point& lhs, const aoc::Point& rhs) {
+    lhs.first += rhs.first;
+    lhs.second += rhs.second;
+    return lhs;
+}
+
+aoc::Point& operator*=(aoc::Point& lhs, const int x) {
+    lhs.first *= x;
+    lhs.second *= x;
+    return lhs;
+}
+
+aoc::Point operator-(const aoc::Point& lhs, const aoc::Point& rhs) {
+    aoc::Point out{lhs.first - rhs.first, lhs.second - rhs.second};
+    return out;
+}
+namespace aoc { 
     // Needed if we want to store a point in a hash
     struct PointHash {
         std::size_t operator() (const Point& pair) const {
@@ -49,6 +79,22 @@ namespace aoc {
             return v;
         }
     };
+
+    template <typename T> int sgn(T val) {
+        return (T(0) < val) - (val < T(0));
+    }
+
+    aoc::Point abs(const aoc::Point& p) {
+        return {std::abs(p.first), std::abs(p.second)};
+    }
+
+    aoc::Point max(const aoc::Point& lhs, const aoc::Point& rhs) {
+        return { std::max(lhs.first, rhs.first), std::max(lhs.second, rhs.second) };
+    }
+
+    aoc::Point min(const aoc::Point& lhs, const aoc::Point& rhs) {
+        return { std::min(lhs.first, rhs.first), std::min(lhs.second, rhs.second) };
+    }
 
     const auto print_result = [](int part, auto result) {
         std::cout << "Part " << part << ": " << result << std::endl;
