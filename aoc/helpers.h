@@ -39,7 +39,42 @@
 
 namespace aoc {
 
-    using Point = std::pair<int, int>;
+    using Point = std::pair<int64_t, int64_t>;
+
+}
+
+std::ostream& operator<<(std::ostream& os, const aoc::Point& p) {
+    os << "{ " << p.first << ", " << p.second << " }";
+    return os;
+}
+
+aoc::Point operator+(const aoc::Point& lhs, const aoc::Point& rhs) {
+    aoc::Point out{lhs.first + rhs.first, lhs.second + rhs.second};
+    return out;
+}
+
+aoc::Point operator*(const aoc::Point& lhs, const int x) {
+    aoc::Point out{lhs.first * x, lhs.second * x};
+    return out;
+}
+
+aoc::Point& operator+=(aoc::Point& lhs, const aoc::Point& rhs) {
+    lhs.first += rhs.first;
+    lhs.second += rhs.second;
+    return lhs;
+}
+
+aoc::Point& operator*=(aoc::Point& lhs, const int x) {
+    lhs.first *= x;
+    lhs.second *= x;
+    return lhs;
+}
+
+aoc::Point operator-(const aoc::Point& lhs, const aoc::Point& rhs) {
+    aoc::Point out{lhs.first - rhs.first, lhs.second - rhs.second};
+    return out;
+}
+namespace aoc { 
     // Needed if we want to store a point in a hash
     struct PointHash {
         std::size_t operator() (const Point& pair) const {
