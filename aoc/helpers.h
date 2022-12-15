@@ -80,10 +80,31 @@ namespace aoc {
         std::size_t operator() (const Point& pair) const {
             size_t v = pair.first;
             v <<= 32;
-            v |= pair.second;
+            v |= static_cast<uint32_t>(pair.second);
             return v;
         }
     };
+
+    template <typename T> int sgn(T val) {
+        return (T(0) < val) - (val < T(0));
+    }
+
+    aoc::Point abs(const aoc::Point& p) {
+        return {std::abs(p.first), std::abs(p.second)};
+    }
+
+    int64_t manhattan(const aoc::Point& p, const aoc::Point& q) {
+        const auto diff = aoc::abs(p - q);
+        return diff.first + diff.second;
+    }
+
+    aoc::Point max(const aoc::Point& lhs, const aoc::Point& rhs) {
+        return { std::max(lhs.first, rhs.first), std::max(lhs.second, rhs.second) };
+    }
+
+    aoc::Point min(const aoc::Point& lhs, const aoc::Point& rhs) {
+        return { std::min(lhs.first, rhs.first), std::min(lhs.second, rhs.second) };
+    }
 
     const auto print_result = [](int part, auto result) {
         std::cout << "Part " << part << ": " << result << std::endl;
