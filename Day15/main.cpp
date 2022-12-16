@@ -25,6 +25,7 @@ Sensor at x=20, y=1: closest beacon is at x=15, y=3)");
   constexpr int64_t SR_Part2 = 56000011;
 
   // Sensor -> Radius
+  using Beacon = std::pair<aoc::Point, int64_t>;
   using Report = std::map<aoc::Point, int64_t>;
 
   const auto LoadInput = [](auto f) {
@@ -47,6 +48,7 @@ Sensor at x=20, y=1: closest beacon is at x=15, y=3)");
 
   const auto reduceCoveredRanges = [](Ranges& r) {
     Ranges out;
+    if (r.empty()) { return out; }
     std::sort(r.begin(), r.end());
     auto last = r.front();
     for (const auto& span : r) {
@@ -120,13 +122,36 @@ int main(int argc, char** argv) {
     }
   }
 
+  Report r2;
+  int64_t min = INT_MAX;
+  int64_t max = INT_MIN;
   
-  const int64_t max = inTest ? 20 : 4000000;
+  if (inTest) {
+    r2 = r;
+    min = 0;
+    max = 20;
+  } else {
+    // Reduce the set of beacons to those which are radius + 2 apart
+    // The only uncovered point in this quadrant is where the distress beacon is
+    for (const auto& [lpt, lradius] : r) {
+      for (const auto& [rpt, rradius] : r) {
+        if (lpt == rpt) { continue; }
+        const auto dist = aoc::manhattan(lpt, rpt);
+        if (dist == lradius + rradius + 2) {
+          r2.emplace(lpt, lradius);
+          r2.emplace(rpt, rradius);
+          min = std::min(std::min(lpt.second,rpt.second), min);
+          max = std::max(std::max(lpt.second, rpt.second), max);
+        }
+      }
+    }
+    max = std::min(static_cast<int64_t>(4000000), max);
+  }
 
-  for (int64_t y = 0; y < max; y++) {
-    const auto ranges = getCoveredRanges(r, y);
+  for (int64_t y = min; y < max; y++) {
+    const auto ranges = getCoveredRanges(r2, y);
     DEBUG_LOG(y, ranges.size());
-    if (ranges.size() == 1) { continue; }
+    if (ranges.size() < 2) { continue; }
 
     if (ranges[0].second < 0 || ranges[1].first > max) {
       continue;
