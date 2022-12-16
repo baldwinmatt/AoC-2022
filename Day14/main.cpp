@@ -1,6 +1,6 @@
 #include "aoc/helpers.h"
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <thread>
 
 using namespace std::chrono_literals;
@@ -27,7 +27,7 @@ namespace {
     Sand = 'O',
   };
 
-  using SparseGrid = std::map<aoc::Point, Tile>;
+  using SparseGrid = std::unordered_map<aoc::Point, Tile, aoc::PointHash>;
 
   class Map {
   public:
