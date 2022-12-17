@@ -54,16 +54,13 @@ Sensor at x=20, y=1: closest beacon is at x=15, y=3)");
     for (const auto& span : r) {
       // completely encompassed
       if (span.first >= last.first && span.second <= last.second) {
-        DEBUG_LOG("encompassed range", span.first, span.second, last.first, last.second);
         continue;
       } else if ((span.first <= last.first && span.second > last.first) ||
                 (span.first <= last.second && span.second > last.second))
       { // overlap, so extend
         last.first = std::min(span.first, last.first);
         last.second = std::max(span.second, last.second);
-        DEBUG_LOG("extended range", span.first, span.second, last.first, last.second);
       } else { // no overlap
-        DEBUG_LOG("distinct range", span.first, span.second, last.first, last.second);
         out.emplace_back(last);
         last = span;
       }
@@ -90,7 +87,6 @@ Sensor at x=20, y=1: closest beacon is at x=15, y=3)");
       if (!distance) { continue; }
 
       // all these points are covered
-      DEBUG_LOG(row, sensor.first - distance, sensor.first + distance);
       covered_range.emplace_back(sensor.first - distance, sensor.first + distance);
     }
     return reduceCoveredRanges(covered_range);
@@ -133,24 +129,28 @@ int main(int argc, char** argv) {
   } else {
     // Reduce the set of beacons to those which are radius + 2 apart
     // The only uncovered point in this quadrant is where the distress beacon is
+    std::vector<int64_t>ys;
+
     for (const auto& [lpt, lradius] : r) {
       for (const auto& [rpt, rradius] : r) {
         if (lpt == rpt) { continue; }
         const auto dist = aoc::manhattan(lpt, rpt);
         if (dist == lradius + rradius + 2) {
+          DEBUG_LOG(lpt, lradius);
+          ys.emplace_back(lpt.second);
           r2.emplace(lpt, lradius);
-          r2.emplace(rpt, rradius);
-          min = std::min(std::min(lpt.second,rpt.second), min);
-          max = std::max(std::max(lpt.second, rpt.second), max);
         }
       }
     }
+    assert(ys.size() == 4);
+    std::sort(ys.begin(), ys.end());
+    max = ys[2];
+    min = ys[1];
     max = std::min(static_cast<int64_t>(4000000), max);
   }
 
   for (int64_t y = min; y < max; y++) {
     const auto ranges = getCoveredRanges(r2, y);
-    DEBUG_LOG(y, ranges.size());
     if (ranges.size() < 2) { continue; }
 
     if (ranges[0].second < 0 || ranges[1].first > max) {
