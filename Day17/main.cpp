@@ -101,32 +101,35 @@ int main(int argc, char** argv) {
   const auto cacheKey = [](const Cave& settled, int64_t height) {
     std::string key;
     for (int64_t x = 0; x < 7; x++) {
-      for (int64_t y = height; y >= 0; y--) {
+      int64_t y;
+      for (y = height; y >= 0; y--) {
         aoc::Point pt{x, y};
         if (settled.count(pt)) {
-          if (!key.empty()) {
-            key += ',';
-          }
-          key.append(std::to_string(height - y));
           break;
         }
       }
+      if (!key.empty()) {
+        key += ',';
+      }
+      key.append(std::to_string(height - y));
     }
     return key;
   };
 
   int64_t dropped = 0;
   uint8_t rock_idx = 0;
-  std::vector<int64_t>heights { 0 };
+  std::vector<int64_t>heights;
+  heights.push_back(height); // initial state
   while (!part1 && !part2) {
+
     const auto& rock = ROCKS[rock_idx];
     aoc::Point rock_pos{2, height + 3};
     bool did_settle = false;
 
     do {
       // push one unit by jet-stream
-      const auto dir = p[iteration++];
-      iteration %= p.size();
+      const auto dir = p[iteration];
+      iteration = (iteration + 1) % p.size();
       const auto& move = (dir == '<') ? LEFT : RIGHT;
 
       // pushed by jet
@@ -151,28 +154,28 @@ int main(int argc, char** argv) {
     heights.emplace_back(height);
 
     dropped ++;
-    rock_idx ++;
-    rock_idx %= ROCKS.size();
+    rock_idx = (rock_idx + 1) % ROCKS.size();
 
     Key cache_key = { rock_idx, iteration, cacheKey(settled, height) };
-    DEBUG_LOG((int)rock_idx, iteration, std::get<2>(cache_key));
+    DEBUG_LOG(height, dropped, (int32_t)rock_idx, iteration, std::get<2>(cache_key));
     std::pair<int64_t, int64_t> val{ dropped, height };
     const auto r = cache.emplace(std::move(cache_key), std::move(val));
-
 
     // We've seen this pattern before, so can consult our cache
     if (!r.second) {
       val = r.first->second;
-      
+
       std::vector<int64_t> results;
       int64_t targets[] = { 2022, 1000000000000 };
 
-      for (const int64_t n : targets) {
+      for ( int64_t n : targets) {
         int64_t x = (n - val.first) / (dropped - val.first);
         int64_t rx = (n - val.first) % (dropped - val.first);
 
+        DEBUG_LOG(n, x, rx, val.first, val.second, height, heights[val.first + rx]);
+
         // scale
-        int64_t hx = x * (height - val.second) + heights[val.first + rx];
+        int64_t hx = (x * (height - val.second)) + (heights[val.first + rx]);
         results.push_back(hx);
       }
 
@@ -180,8 +183,6 @@ int main(int argc, char** argv) {
       part2 = results[1];
     }
   }
-
-  part1 = height;
 
   aoc::print_results(part1, part2);
 
