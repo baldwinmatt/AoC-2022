@@ -120,7 +120,7 @@ int main(int argc, char** argv) {
       cur->prev->next = cur->next;
       cur->next->prev = cur->prev;
 
-      int dist = std::abs(cur->val) % r->size;
+      int dist = std::abs(cur->val) % (r->size - 1);
 
       // walk to new location
       if (cur->val > 0) {
