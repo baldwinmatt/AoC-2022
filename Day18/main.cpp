@@ -126,7 +126,6 @@ namespace {
     Point max{0, 0, 0};
     while (aoc::getline(f, line)) {
       std::vector<int>parts;
-      std::string_view part;
       aoc::parse_as_integers(line, ",", [&parts](const auto part) {
         parts.push_back(part);
       });

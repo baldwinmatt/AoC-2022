@@ -1,6 +1,7 @@
 #include "aoc/helpers.h"
 #include <queue>
 #include <vector>
+#include <optional>
 
 namespace {
   using Result = std::pair<int, int>;

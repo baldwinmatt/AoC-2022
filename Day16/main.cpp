@@ -20,8 +20,9 @@ Valve JJ has flow rate=21; tunnel leads to valve II)");
   constexpr int SR_Part1 = 1651;
   constexpr int SR_Part2 = 1707;
 
+#ifndef NDEBUG
   STRING_CONSTANT(STR_VALVE, "Valve");
-  STRING_CONSTANT(STR_RATE, "rate");
+#endif
   STRING_CONSTANT(STR_VALVES, "valves");
   STRING_CONSTANT(STR_VALVE_, "valve");
 
@@ -74,7 +75,6 @@ Valve JJ has flow rate=21; tunnel leads to valve II)");
 
     return std::reverse(s.begin(), s.end());
   };
-#endif
 
   const auto CompressValves = [](const ValveList& vl) {
     std::for_each(vl.begin(), vl.end(), [](const auto& f) {
@@ -87,6 +87,7 @@ Valve JJ has flow rate=21; tunnel leads to valve II)");
       DEBUG_LOG(v.name);
     }
   };
+#endif
 
   const auto LoadInput = [](auto f) {
     std::string_view line;

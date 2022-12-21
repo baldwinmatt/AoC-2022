@@ -56,5 +56,5 @@
     ostr << tp << " : ";                                                                              \
     FOR_EACH(LN_TRACE_ARG_TO_OSTR, __VA_ARGS__);                                                                 \
     fprintf(stderr, "%02d/%02d/%02d %02d:%02d:%02d.%06ld %s\n", lt.tm_mon + 1, lt.tm_mday, lt.tm_year % 100,      \
-            lt.tm_hour, lt.tm_min, lt.tm_sec, tv.tv_usec, ostr.str().c_str());                                   \
+            lt.tm_hour, lt.tm_min, lt.tm_sec, (long)tv.tv_usec, ostr.str().c_str());                                   \
 } while (0)
