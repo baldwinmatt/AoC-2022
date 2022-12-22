@@ -1,5 +1,5 @@
 #include "aoc/helpers.h"
-#include <map>
+#include <unordered_map>
 #include <stack>
 
 namespace {
@@ -106,7 +106,7 @@ hmdt: 32
     return m;
   };
 
-  using MonkeyMap = std::map<std::string, Monkey, std::less<>>;
+  using MonkeyMap = std::unordered_map<std::string, Monkey>;
   using MonkeyStack = std::stack<Monkey>;
 
   const auto LoadInput = [](auto f) {
@@ -119,7 +119,7 @@ hmdt: 32
     return r;
   };
 
-  int64_t resolveMonkey(const MonkeyMap& monkeys, const std::string_view name) {
+  int64_t resolveMonkey(const MonkeyMap& monkeys, const std::string& name) {
     auto mit = monkeys.find(name);
     assert(mit != monkeys.end());
 
@@ -132,8 +132,8 @@ hmdt: 32
     return mit->second.solve(lhs, rhs);
   }
 
-  STRING_CONSTANT(ROOT, "root");
-  STRING_CONSTANT(HUMN, "humn");
+  const std::string ROOT{"root"};
+  const std::string HUMN{"humn"};
 
   bool find_human(const MonkeyMap& monkeys, MonkeyStack& stack, const Monkey& node) {
     if (HUMN.compare(node.name) == 0) {
@@ -160,7 +160,7 @@ hmdt: 32
     return false;
   }
 
-  int64_t solve(const MonkeyMap& monkeys, MonkeyStack& stack, const std::string_view& name, int64_t equal_to) {
+  int64_t solve(const MonkeyMap& monkeys, MonkeyStack& stack, const std::string& name, int64_t equal_to) {
     if (name == HUMN) {
       return equal_to;
     }
