@@ -14,7 +14,6 @@
 #include <cassert>
 #include <functional>
 #include <iomanip>
-#include "log.h"
 
 #ifndef NDEBUG
 #define DEBUG(x) do { \
@@ -25,7 +24,6 @@
 #endif
 
 #define DEBUG_PRINT(x) do { DEBUG(std::cout << __func__ << ":" << __LINE__ << ": " << x << std::endl); } while (0)
-#define DEBUG_LOG(...) do { DEBUG(LOG(__func__, __VA_ARGS__)); } while (0)
 
 #define STRING_CONSTANT(symbol, value) constexpr std::string_view symbol(value)
 
@@ -41,10 +39,29 @@ namespace aoc {
 
     using Point = std::pair<int64_t, int64_t>;
 
+    enum class CardinalDirection {
+        North = 0,
+        East = 90,
+        South = 180,
+        West = 270,
+    };
+
 }
 
-std::ostream& operator<<(std::ostream& os, const aoc::Point& p) {
+std::ostream& operator<<(std::ostream& os, const aoc::Point p) {
     os << "{ " << p.first << ", " << p.second << " }";
+    return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const aoc::CardinalDirection p) {
+    switch (p) {
+        case aoc::CardinalDirection::North: os << "North"; return os;
+        case aoc::CardinalDirection::South: os << "South"; return os;
+        case aoc::CardinalDirection::East: os << "East"; return os;
+        case aoc::CardinalDirection::West: os << "West"; return os;
+    }
+    assert(false);
+    os << static_cast<int>(p);
     return os;
 }
 
@@ -104,6 +121,58 @@ namespace aoc {
 
     aoc::Point min(const aoc::Point& lhs, const aoc::Point& rhs) {
         return { std::min(lhs.first, rhs.first), std::min(lhs.second, rhs.second) };
+    }
+
+    CardinalDirection fromBearing(int32_t bearing) {
+        while (bearing < 0) {
+            bearing += 360;
+        }
+        if (bearing >= 360) {
+            bearing %= 360;
+        }
+        switch (bearing) {
+            case 0:
+                return CardinalDirection::North;
+            case 90:
+                return CardinalDirection::East;
+            case 180:
+                return CardinalDirection::South;
+            case 270:
+                return CardinalDirection::West;
+            default:
+                throw std::runtime_error("Bad bearing: " + std::to_string(bearing));
+        }
+    }
+
+    CardinalDirection turnLeft(CardinalDirection dir) {
+        int32_t bearing = static_cast<int32_t>(dir);
+        bearing -= 90;
+        return fromBearing(bearing);
+    }
+
+    CardinalDirection turnRight(CardinalDirection dir) {
+        int32_t bearing = static_cast<int32_t>(dir);
+        bearing += 90;
+        return fromBearing(bearing);
+    }
+
+    aoc::Point stepFromCardinalDirection(CardinalDirection dir) {
+        switch (dir) {
+            case CardinalDirection::North:
+                return { 0, 1 };
+            case CardinalDirection::South:
+                return { 0, -1 };
+            case CardinalDirection::East:
+                return { 1, 0 };
+            case CardinalDirection::West:
+                return { -1, 0 };
+        }
+        throw std::runtime_error("Bad direction: " + std::to_string(static_cast<int32_t>(dir)));
+    }
+
+    aoc::Point moveInDirection(const aoc::Point pt, CardinalDirection dir, int steps) {
+      aoc::Point step = stepFromCardinalDirection(dir) * steps;
+      return pt + step;
     }
 
     const auto print_result = [](int part, auto result) {
@@ -455,3 +524,6 @@ namespace aoc {
         T* _map;
     };
 };
+
+#include "log.h"
+#define DEBUG_LOG(...) do { DEBUG(LOG(__func__, __VA_ARGS__)); } while (0)
