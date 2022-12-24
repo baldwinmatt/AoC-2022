@@ -14,6 +14,7 @@
 #include <cassert>
 #include <functional>
 #include <iomanip>
+#include <vector>
 
 #ifndef NDEBUG
 #define DEBUG(x) do { \
@@ -41,11 +42,25 @@ namespace aoc {
 
     enum class CardinalDirection {
         North = 0,
+        NorthEast = 45,
         East = 90,
+        SouthEast = 135,
         South = 180,
+        SouthWest = 225,
         West = 270,
+        NorthWest = 315,
     };
 
+    const std::vector<CardinalDirection> DIRECTIONS {
+        CardinalDirection::North,
+        CardinalDirection::NorthEast, 
+        CardinalDirection::East,
+        CardinalDirection::SouthEast,
+        CardinalDirection::South,
+        CardinalDirection::SouthWest,
+        CardinalDirection::West,
+        CardinalDirection::NorthWest,
+    };
 }
 
 std::ostream& operator<<(std::ostream& os, const aoc::Point p) {
@@ -56,7 +71,11 @@ std::ostream& operator<<(std::ostream& os, const aoc::Point p) {
 std::ostream& operator<<(std::ostream& os, const aoc::CardinalDirection p) {
     switch (p) {
         case aoc::CardinalDirection::North: os << "North"; return os;
+        case aoc::CardinalDirection::NorthEast: os << "NorthEast"; return os;
+        case aoc::CardinalDirection::NorthWest: os << "NorthWest"; return os;
         case aoc::CardinalDirection::South: os << "South"; return os;
+        case aoc::CardinalDirection::SouthEast: os << "SouthEast"; return os;
+        case aoc::CardinalDirection::SouthWest: os << "SouthWest"; return os;
         case aoc::CardinalDirection::East: os << "East"; return os;
         case aoc::CardinalDirection::West: os << "West"; return os;
     }
@@ -133,12 +152,20 @@ namespace aoc {
         switch (bearing) {
             case 0:
                 return CardinalDirection::North;
+            case 45:
+                return CardinalDirection::NorthEast;
             case 90:
                 return CardinalDirection::East;
+            case 135:
+                return CardinalDirection::SouthEast;
             case 180:
                 return CardinalDirection::South;
+            case 225:
+                return CardinalDirection::SouthWest;
             case 270:
                 return CardinalDirection::West;
+            case 325:
+                return CardinalDirection::NorthWest;
             default:
                 throw std::runtime_error("Bad bearing: " + std::to_string(bearing));
         }
@@ -159,13 +186,21 @@ namespace aoc {
     aoc::Point stepFromCardinalDirection(CardinalDirection dir) {
         switch (dir) {
             case CardinalDirection::North:
-                return { 0, 1 };
-            case CardinalDirection::South:
                 return { 0, -1 };
+            case CardinalDirection::NorthEast:
+                return { 1, -1 };
             case CardinalDirection::East:
                 return { 1, 0 };
+            case CardinalDirection::SouthEast:
+                return { 1, 1 };
+            case CardinalDirection::South:
+                return { 0, 1 };
+            case CardinalDirection::SouthWest:
+                return { -1, 1 };
             case CardinalDirection::West:
                 return { -1, 0 };
+            case CardinalDirection::NorthWest:
+                return { -1, -1 };
         }
         throw std::runtime_error("Bad direction: " + std::to_string(static_cast<int32_t>(dir)));
     }
