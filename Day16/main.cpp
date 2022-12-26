@@ -1,7 +1,9 @@
 #include "aoc/helpers.h"
 #include <vector>
 #include <map>
+#include <set>
 #include <functional>
+#include <queue>
 
 namespace {
   using Result = std::pair<int, int>;
@@ -18,7 +20,7 @@ Valve HH has flow rate=22; tunnel leads to valve GG
 Valve II has flow rate=0; tunnels lead to valves AA, JJ
 Valve JJ has flow rate=21; tunnel leads to valve II)");
   constexpr int SR_Part1 = 1651;
-  constexpr int SR_Part2 = 1707;
+  constexpr int SR_Part2 = 1707; 
 
 #ifndef NDEBUG
   STRING_CONSTANT(STR_VALVE, "Valve");
@@ -30,68 +32,150 @@ Valve JJ has flow rate=21; tunnel leads to valve II)");
   struct Valve {
     std::string name;
     int64_t flow;
-    std::vector<std::string> exits;
+    int64_t id;
+
+    Valve()
+      : flow(0)
+      , id(0)
+    {
+    }
+
+    using ValveRefList = std::vector<Valve *>;
+    using ValveCost = std::pair<Valve *, int64_t>;
+
+    std::vector<ValveCost>working;
+    ValveRefList exits;
   };
 
-  using CompressedExit = std::pair<std::string_view, int64_t>;
-  // Zero nodes removed, with cost to next nodes
-  struct CompressedValve {
-    std::string name;
-    int64_t flow;
-    std::vector<CompressedExit> exits;
-  };
-
+  using ValveCost = std::pair<Valve *, int64_t>;
   using ValveList = std::vector<Valve>;
-  using ValveRef = std::reference_wrapper<Valve>;
-  using CompressedValveList = std::map<std::string_view, ValveRef>;
+  using ValveRefList = std::vector<Valve *>;
 
-#if 0
-  const auto NameToInt = [](const std::string_view& name) {
-    uint32_t v = 0;
-    assert(name.size() < 4);
-    for (const auto c : name) {
-      assert(c >= 'A' && c <= 'Z');
-      v |= (c - 'A');
-      v <<= 5;
+  const auto compressValves = [](ValveRefList& working) {
+
+    std::map<std::pair<std::string, std::string>, int64_t> costs;
+
+    const auto cost = [&costs](Valve* start, Valve* end) {
+      struct comparator {
+        bool operator()(const ValveCost& l, const ValveCost& r) {
+          return l.second > r.second;
+        }
+      };
+
+      std::pair<std::string, std::string>key{start->name, end->name};
+      const auto rit = costs.find(key);
+      if (rit != costs.end()) {
+        DEBUG_LOG(start->name, end->name, rit->second);
+        return rit->second;
+      }
+
+      std::priority_queue<ValveCost,
+        std::vector<ValveCost>,
+        comparator> queue;
+
+      queue.emplace(start, 0);
+      while (!queue.empty()) {
+        auto item = queue.top(); queue.pop();
+
+        if (item.first->name == end->name) {
+          key.first = end->name;
+          key.second = start->name;
+          costs.emplace(std::move(key), item.second);
+          DEBUG_LOG(start->name, end->name, item.second);
+          return item.second;
+        }
+
+        for (auto conn : item.first->exits) {
+          queue.emplace(conn, item.second + 1);
+        }
+      }
+      assert(false);
+      return static_cast<int64_t>(-1);
+    };
+
+    for (auto valve : working) {
+      for (auto conn : working) {
+        if (conn->name == valve->name || conn->name == "AA") {
+          continue;
+        }
+
+        valve->working.emplace_back(conn, cost(valve, conn));
+      }
     }
-    DEBUG_LOG(name, v);
-    return v;
   };
 
-  const auto IntToName = [](uint32_t v) {
-    std::string s;
-    while (v > 0) {
-      char c = static_cast<char>(v & 0xff) + 'A';
-      s.push_back(c);
-      v >>= 5;
-    }
+  struct EnqueuedValve {
+    Valve *valve;
+    int64_t time;
+    int64_t released;
+    int64_t opened;
 
-    if (s.size() == 0) {
-      s.push_back('A');
-    }
-    if (s.size() % 2) {
-      s.push_back('A');
-    }
+    EnqueuedValve(Valve *v, int64_t t, int64_t r, int64_t o)
+      : valve(v)
+      , time(t)
+      , released(r)
+      , opened(o)
+    { }
 
-    return std::reverse(s.begin(), s.end());
+    EnqueuedValve()
+      : EnqueuedValve(nullptr, 0, 0, 0)
+    { }
+
   };
 
-  const auto CompressValves = [](const ValveList& vl) {
-    std::for_each(vl.begin(), vl.end(), [](const auto& f) {
-      if (f.flow == 0) { return; }
+  const auto solve = [](Valve* start) {
+    int64_t max = 0;
 
-      //dijkstra_full(f, f.exits)
-    });
-    for (const auto& v : vl) {
-      (void)v;
-      DEBUG_LOG(v.name);
+    std::set<std::tuple<int64_t, int64_t, int64_t>>added;
+    std::queue<EnqueuedValve>queue;
+    
+    for (auto v : start->working) {
+      queue.emplace(v.first, 30 - v.second, 0, 0);
     }
+
+    while (!queue.empty()) {
+      auto node = queue.front(); queue.pop();
+
+      if (!(node.opened & node.valve->id)) {
+        node.time--;
+        node.opened |= node.valve->id;
+        node.released += node.valve->flow * node.time;
+      }
+
+      DEBUG_LOG(node.valve->name, node.released, max);
+      max = std::max(max, node.released);
+
+      if (node.time < 1) {
+        continue;
+      }
+
+      for (auto v : node.valve->working) {
+        if (node.time - v.second <= 0 ||
+          (node.opened & v.first->id))
+        {
+          continue;
+        }
+
+        const auto rit = added.emplace(v.first->id, node.time, node.opened);
+        if (rit.second) {
+          DEBUG_LOG(v.first->name, node.time - v.second, node.released, node.opened);
+          queue.emplace(v.first, node.time - v.second, node.released, node.opened);
+        }
+      }
+    }
+
+    assert(max);
+
+    return max;
   };
-#endif
 
   const auto LoadInput = [](auto f) {
     std::string_view line;
     ValveList vl;
+
+    std::map<std::string, std::vector<std::string>> conns;
+    int64_t id = 1;
+
     while (aoc::getline(f, line)) {
       std::string_view part;
       std::vector<std::string_view>parts;
@@ -102,17 +186,42 @@ Valve JJ has flow rate=21; tunnel leads to valve II)");
       assert(parts[0] == STR_VALVE);
       size_t i = 1;
       Valve v;
-      v.name = parts[i++]; //NameToInt(parts[i++]);
+      v.name = parts[i++];
+      v.id = id;
+      id <<= 1;
       while (i < parts.size() && !aoc::is_numeric(parts[i][0])) { i++; }
       v.flow = aoc::stoi(parts[i++]);
       while (i < parts.size() && parts[i] != STR_VALVES && parts[i] != STR_VALVE_) { i++; }
       i++;
       assert(i < parts.size());
+      const auto cit = conns.emplace(v.name, std::vector<std::string>());
       while (i < parts.size()) {
-        v.exits.emplace_back(parts[i++]);
+        cit.first->second.emplace_back(parts[i++]);
       }
 
       vl.emplace_back(std::move(v));
+    }
+
+    ValveRefList working;
+    for (size_t i = 0; i < vl.size(); i++) {
+      auto &v = vl[i];
+      if (v.name == "AA" || v.flow > 0) {
+        working.emplace_back(&vl[i]);
+        DEBUG_LOG(v.name, v.flow);
+      }
+      auto vc = conns.at(v.name);
+      for (const auto e : vc) {
+        for (size_t j = 0; j < vl.size(); j++) {
+          if (e == vl[j].name) {
+            v.exits.emplace_back(&vl[j]);
+          }
+        }
+      }
+    }
+
+    {
+      aoc::AutoTimer compress("compress");
+      compressValves(working);
     }
     return vl;
   };
@@ -131,14 +240,26 @@ int main(int argc, char** argv) {
     vl = LoadInput(f);
   }
 
-  int part1 = 0;
+  Valve *start = nullptr;
+  for (size_t i = 0; i < vl.size(); i++) {
+    if (vl[i].name == "AA") {
+      start = &vl[i];
+      break;
+    }
+  }
+  assert(start);
+  int64_t part1 = 0;
+  {
+    aoc::AutoTimer t("part1");
+    part1 = solve(start);
+  }
   int part2 = 0;
 
-  aoc::print_results(part1, part2);
+  aoc::print_results(part1, part2); // 1720, 2582
 
   if (inTest) {
-    aoc::assert_result(part1, SR_Part1);
     aoc::assert_result(part2, SR_Part2);
+    aoc::assert_result(part1, SR_Part1);
   }
 
   return 0;

@@ -1,6 +1,6 @@
 #include "aoc/helpers.h"
 #include <map>
-#include <set>
+#include <unordered_set>
 #include <vector>
 #include <chrono>
 #include <thread>
@@ -21,7 +21,7 @@ namespace {
   constexpr int SR_Part1 = 110;
   constexpr int SR_Part2 = 20;
 
-  using Grid = std::set<aoc::Point>;
+  using PointHash = std::unordered_set<aoc::Point, aoc::PointHash>;
 
   struct Points {
     unsigned n:1;
@@ -39,7 +39,7 @@ namespace {
 
     Points points;
 
-    Elf(aoc::Point p, const Grid& g)
+    Elf(aoc::Point p, const PointHash& g)
       : pos(p) {
 
       points.n = g.count(p + aoc::Point{0, -1});
@@ -104,7 +104,7 @@ namespace {
   };
 
   struct Map {
-    Grid g;
+    PointHash g;
     aoc::Point tr;
     aoc::Point bl;
 
@@ -175,8 +175,8 @@ namespace {
 
   Map turn(const Map& elves, aoc::CardinalDirection dir) {
     std::vector<std::pair<aoc::Point, aoc::Point>> proposed;
-    std::set<aoc::Point>new_pos;
-    std::set<aoc::Point>blocked;
+    PointHash new_pos;
+    PointHash blocked;
 
     for (const auto e : elves.g) {
       const Elf elf(e, elves.g);
