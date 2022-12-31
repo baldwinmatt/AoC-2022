@@ -1,7 +1,4 @@
 #include "aoc/helpers.h"
-#include <thread>
-
-using namespace std::chrono_literals;
 
 namespace {
   using Result = std::pair<int64_t, int64_t>;

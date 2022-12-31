@@ -36,6 +36,7 @@
 #define INT_MAX std::numeric_limits<int>::max()
 #endif
 
+
 namespace aoc {
 
     using Point = std::pair<int64_t, int64_t>;
@@ -110,14 +111,42 @@ aoc::Point operator-(const aoc::Point& lhs, const aoc::Point& rhs) {
     aoc::Point out{lhs.first - rhs.first, lhs.second - rhs.second};
     return out;
 }
-namespace aoc { 
+namespace aoc {
+    // Taken from boost hash combine
+    template <typename SizeT>
+    inline void hash_combine_impl(SizeT& seed, SizeT value)
+    {
+        seed ^= value + 0x9e3779b9 + (seed<<6) + (seed>>2);
+    }
+
+    inline void hash_combine_impl(uint32_t& h1, uint32_t k1)
+    {
+        const uint32_t c1 = 0xcc9e2d51;
+        const uint32_t c2 = 0x1b873593;
+
+        k1 *= c1;
+        k1 =(k1 << 15) | (k1 >> (32 - 15));
+        k1 *= c2;
+
+        h1 ^= k1;
+        h1 = (h1 << 13) | (h1 >> (32 - 13));
+        h1 = h1*5+0xe6546b64;
+    }
+
+    template <class T>
+    inline void hash_combine(std::size_t& seed, T const& v)
+    {
+        std::hash<T> hasher;
+        return hash_combine_impl(seed, hasher(v));
+    }
+
     // Needed if we want to store a point in a hash
     struct PointHash {
         std::size_t operator() (const Point& pair) const {
-            size_t v = pair.first;
-            v <<= 32;
-            v |= static_cast<uint32_t>(pair.second);
-            return v;
+            std::size_t seed = 0;
+            hash_combine(seed, pair.first);
+            hash_combine(seed, pair.second);
+            return seed;
         }
     };
 
