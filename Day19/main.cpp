@@ -1,7 +1,7 @@
 #include "aoc/helpers.h"
 #include <queue>
 #include <vector>
-#include <optional>
+#include <cmath>
 
 namespace {
   using Result = std::pair<int, int>;
@@ -31,12 +31,18 @@ Blueprint 2: Each ore robot costs 2 ore. Each clay robot costs 3 ore. Each obsid
     MaterialSet clayset;
     MaterialSet obsidianset;
     MaterialSet geodeset;
+
+    MaterialSet max;
   };
 
   struct State {
     int64_t t;
     MaterialSet bag;
     MaterialSet bots;
+
+    bool valid() const {
+      return bag.clay >= 0 && bag.geode >= 0 && bag.obsidian >= 0 && bag.geode >= 0;
+    }
   };
 
   std::ostream& operator<<(std::ostream& os, const MaterialSet& m) {
@@ -49,11 +55,16 @@ Blueprint 2: Each ore robot costs 2 ore. Each clay robot costs 3 ore. Each obsid
     return os;
   }
 
-  const auto mine = [](const MaterialSet& mineral, MaterialSet& bag) {
-    if (bag.ore < mineral.ore ||
-      (mineral.clay && bag.clay <= mineral.clay) ||
-      (mineral.obsidian && bag.obsidian <= mineral.obsidian))
-    { return false; }
+  const auto canBuild = [](const MaterialSet& mineral, const MaterialSet& bag) {
+    return bag.ore >= mineral.ore &&
+      bag.clay >= mineral.clay &&
+      bag.obsidian >= mineral.obsidian;
+  };
+
+  const auto build = [](const MaterialSet& mineral, MaterialSet& bag) {
+    if (!canBuild) {
+      return false;
+    }
 
     bag.ore -= mineral.ore;
     bag.clay -= mineral.clay;
@@ -63,28 +74,100 @@ Blueprint 2: Each ore robot costs 2 ore. Each clay robot costs 3 ore. Each obsid
     return true;
   };
 
-  const auto getOutput = [](const Blueprint& b, const State& s) {
-    std::optional<State>out;
+  const auto mine = [](State& state, int ticks = 1) {
+    state.t += ticks;
+    state.bag.ore += (ticks * state.bots.ore);
+    state.bag.clay += (ticks * state.bots.clay);
+    state.bag.obsidian += (ticks * state.bots.obsidian);
+    state.bag.geode += (ticks * state.bots.geode);
+  };
 
+  const auto getOutput = [](const Blueprint& b, const State& s, int64_t deadline) {
+    std::vector<State>out;
     State next{s};
 
-    while (mine(b.geodeset, next.bag)) {
-      next.bots.geode++;
-      out.emplace(std::move(next));
+    int64_t td = 0;
+    while (!canBuild(b.geodeset, next.bag)) {
+      mine(next);
+
+      if (next.t >= deadline) {
+        break;
+      }
+      td++;
     }
 
-    while (mine(b.obsidianset, next.bag)) {
-      next.bots.obsidian++;
-      out.emplace(std::move(next));
+    if (next.t < deadline && canBuild(b.geodeset, next.bag)) {
+      mine(next);
+      build(b.geodeset, next.bag);
+      next.bots.geode++;
+      out.emplace_back(std::move(next));
+
+      if (!td) { return out; }
     }
-    while (mine(b.clayset, next.bag)) {
-      next.bots.clay++;
-      out.emplace(std::move(next));
+
+    if (s.bots.obsidian < b.max.obsidian) {
+      td = 0;
+      next = s;
+
+      while (!canBuild(b.obsidianset, next.bag)) {
+        mine(next);
+
+        if (next.t >= deadline) {
+          break;
+        }
+        td++;
+      }
+
+      if (next.t < deadline && canBuild(b.obsidianset, next.bag)) {
+        mine(next);
+        build(b.obsidianset, next.bag);
+        next.bots.obsidian++;
+        out.emplace_back(std::move(next));
+
+        if (!td) { return out; }
+      }
     }
-    while (mine(b.oreset, next.bag)) {
-      next.bots.ore++;
-      out.emplace(std::move(next));
+
+    if (s.bots.clay < b.max.clay) {
+      td = 0;
+      next = s;
+
+      while (!canBuild(b.clayset, next.bag)) {
+        mine(next);
+
+        if (next.t >= deadline) {
+          break;
+        }
+        td++;
+      }
+
+      if (next.t < deadline && canBuild(b.clayset, next.bag)) {
+        mine(next);
+        build(b.clayset, next.bag);
+        next.bots.clay++;
+        out.emplace_back(std::move(next));
+
+        if (!td) { return out; }
+      }
     }
+
+    if (s.bots.ore < b.max.ore) {
+      next = s;
+
+      if (next.bag.ore < b.oreset.ore) {
+        const auto ticks = std::ceil(static_cast<float>(b.oreset.ore - next.bag.ore) / static_cast<float>(next.bots.ore));
+        mine(next, ticks);
+      }
+
+      if (next.t < deadline) {
+        mine(next);
+        build(b.oreset, next.bag);
+
+        next.bots.ore++;
+        out.emplace_back(std::move(next));
+      }
+    }
+
     return out;
   };
 
@@ -95,27 +178,28 @@ Blueprint 2: Each ore robot costs 2 ore. Each clay robot costs 3 ore. Each obsid
     std::queue<State>q;
     q.emplace(t0);
 
-    int max = 0;
+    int64_t max = 0;
+    int64_t maxAt = 0;
 
     while (!q.empty()) {
       auto state = q.front(); q.pop();
       DEBUG_LOG(state);
 
-      if (state.t == maxtime) {
-        max = std::max(max, state.bag.geode);
+      if (state.bag.geode + 1 < max && state.t >= maxAt) {
+        // we can't possibly improve on our current best, so prune it
         continue;
       }
 
-      state.t++;
-      auto out = getOutput(b, state);
-      state.bag.ore += state.bots.ore;
-      state.bag.clay += state.bots.clay;
-      state.bag.obsidian += state.bots.obsidian;
-      state.bag.geode += state.bots.geode;
-      q.emplace(std::move(state));
-
-      if (out.has_value()) {
-        q.emplace(out.value());
+      if (state.bag.geode > max) {
+        maxAt = state.t;
+        max = state.bag.geode;
+      }
+      const auto out = getOutput(b, state, maxtime);
+      for (const auto& s : out) {
+        assert(s.valid());
+        if (s.valid()) {
+          q.emplace(s);
+        }
       }
     }
 
@@ -146,8 +230,13 @@ Blueprint 2: Each ore robot costs 2 ore. Each clay robot costs 3 ore. Each obsid
       b.obsidianset.clay = minerals[i++];
       b.geodeset.ore = minerals[i++];
       b.geodeset.obsidian = minerals[i++];
+
+      b.max.obsidian = b.geodeset.obsidian;
+      b.max.clay = b.obsidianset.clay;
+      b.max.ore = std::max(b.oreset.ore, std::max(b.clayset.ore, std::max(b.obsidianset.ore, b.geodeset.obsidian)));
+
       assert(i == minerals.size());
-      r.first += id * runBlueprint(b, 4);
+      r.first += id * runBlueprint(b, 24);
       blueprints.push_back(b);
     }
     return r;
@@ -168,7 +257,7 @@ int main(int argc, char** argv) {
   }
 
   int part1 = 0;
-  int part2 = 0;
+  int part2 = 0;  //21840
 
   std::tie(part1, part2) = r;
 
