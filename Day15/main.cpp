@@ -1,6 +1,5 @@
 #include "aoc/helpers.h"
-#include <map>
-#include <unordered_set>
+#include <unordered_map>
 #include <vector>
 
 namespace {
@@ -26,7 +25,7 @@ Sensor at x=20, y=1: closest beacon is at x=15, y=3)");
 
   // Sensor -> Radius
   using Beacon = std::pair<aoc::Point, int64_t>;
-  using Report = std::map<aoc::Point, int64_t>;
+  using Report = std::unordered_map<aoc::Point, int64_t, aoc::PointHash>;
 
   const auto LoadInput = [](auto f) {
     Report r;
