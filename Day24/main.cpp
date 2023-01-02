@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <functional>
 #include <queue>
+#include "aoc/point.h"
 
 using namespace std::chrono_literals;
 
@@ -23,32 +24,32 @@ namespace {
   constexpr int SR_Part1 = 18;
   constexpr int SR_Part2 = 0;
 
-  using Blizzards = std::vector<aoc::Point>;
+  using Blizzards = std::vector<aoc::point>;
 
-  const auto blizzard_pos = [](aoc::CardinalDirection dir, const aoc::Point p, const aoc::Point dims, const size_t n) {
-    const auto grid_width = dims.first - 2;
-    const auto grid_height = dims.second - 2;
+  const auto blizzard_pos = [](aoc::CardinalDirection dir, const aoc::point p, const aoc::point dims, const size_t n) {
+    const auto grid_width = dims.x - 2;
+    const auto grid_height = dims.y - 2;
     const auto modx = n % grid_width;
     const auto mody = n % grid_height;
 
-    aoc::Point out(p);
+    aoc::point out{p};
 
     switch(dir) {
       case aoc::CardinalDirection::North:
         // pos.y = (init.y - 1 + grid_height - mody) % grid_height + 1
-        out.second = (p.second - 1 + grid_height - mody) % grid_height + 1;
+        out.y = (p.y - 1 + grid_height - mody) % grid_height + 1;
         break;
       case aoc::CardinalDirection::South:
         //(init.y - 1 + mody) % grid_height + 1
-        out.second = (p.second - 1 + mody) % grid_height + 1;
+        out.y = (p.y - 1 + mody) % grid_height + 1;
         break;
       case aoc::CardinalDirection::East:
         //(init.x - 1 + modx) % grid_width + 1
-        out.first = (p.first - 1 + modx) % grid_width + 1;
+        out.x = (p.x - 1 + modx) % grid_width + 1;
         break;
       case aoc::CardinalDirection::West:
         // pos.x = (init.x - 1 + grid_width - modx) % grid_width + 1
-        out.first = (p.first - 1 + grid_width - modx) % grid_width + 1;
+        out.x = (p.x - 1 + grid_width - modx) % grid_width + 1;
         break;
       default:
         assert(false);
@@ -58,97 +59,98 @@ namespace {
   };
 
   struct Map {
-    size_t width;
-    size_t height;
+    int32_t width{0};
+    int32_t height{0};
+
+    aoc::point elves{1, 0};
 
     Blizzards north;
     Blizzards east;
     Blizzards south;
     Blizzards west;
 
-    aoc::Point start;
-    aoc::Point end;
-    aoc::Point elves;
+    constexpr aoc::point entrance() const {
+      return { 1, 0 };
+    }
+    const aoc::point exit() const {
+      return { width - 2, height - 1 };
+    }
 
-    Map()
-      : width(0)
-      , height(0)
-      , start(1, 0)
-      , end(-1, -1)
-      , elves(start) {
+    bool is_wall(aoc::point const& p) const {
+      const auto start = entrance();
+      const auto end = exit();
+      
+      return (p.x <= 0 || p.x >= width - 1 || p.y <= 0 || p.y >= height) &&
+        !(p == start || p == end);
     }
 
     // determine if a given point is empty at this point in time
-    bool empty(aoc::Point pt, size_t n) {
-      // entrance and exit are always empty
-      if (pt == start ||
-          pt == end) {
-        return true;
-      }
+    bool empty(aoc::point pt, size_t n) {
 
-      const auto grid_width = width - 2;
-      const auto grid_height = height - 2;
-      const auto modx = n % grid_width;
-      const auto mody = n % grid_height;
+      const int32_t grid_width = width - 2;
+      const int32_t grid_height = height - 2;
+      const int32_t modx = n % grid_width;
+      const int32_t mody = n % grid_height;
 
-      // point is out of bounds
-      if (pt.first < 1 || pt.first > static_cast<int64_t>(grid_width) ||
-          pt.second < 1 || pt.second > static_cast<int64_t>(grid_height)) {
+      // point is in a wall
+      if (is_wall(pt)) {
         return false;
       }
 
       // east stepped n times.
       // pos.x = (init.x - 1 + modx) % grid_width + 1
       // => init.x = (pos.x - 1 + grid_width - modx) % grid_width + 1
-      aoc::Point s{ (pt.first - 1 + grid_width - modx) % grid_width + 1, pt.second };
+      aoc::point s{ (pt.x - 1 + grid_width - modx) % grid_width + 1, pt.y };
       auto it = std::find(east.begin(), east.end(), s);
       if (it != east.end()) { return false; }
 
       // west stepped -n times
       // pos.x = (init.x - 1 + grid_width - modx) % grid_width + 1
       // => init.x = (pos.x - 1 + modx) % grid_width + 1
-      s.first = (pt.first - 1 + modx) % grid_width + 1;
+      s.x = (pt.x - 1 + modx) % grid_width + 1;
       it = std::find(west.begin(), west.end(), s);
       if (it != west.end()) { return false; }
 
-      s.first = pt.first;
+      s.x = pt.x;
 
       // south stepped n times
       // pos.y = (init.y - 1 + mody) % grid_height + 1
       // => init.y = (pos.y - 1 + grid_height - modx) % grid_height + 1
-      s.second = (pt.second - 1 + grid_height - modx) % grid_height + 1;
+      s.y = (pt.y - 1 + grid_height - modx) % grid_height + 1;
       it = std::find(south.begin(), south.end(), s);
       if (it != south.end()) { return false; }
 
       // north stepped -n times
       // pos.y = (init.y - 1 + grid_height - mody) % grid_height + 1
       // => init.y = (pos.y - 1 + mody) % grid_height + 1
-      s.second = (pt.second - 1 + mody) % grid_height + 1;
+      s.y = (pt.y - 1 + mody) % grid_height + 1;
       it = std::find(north.begin(), north.end(), s);
       if (it != north.end()) { return false; }
 
       return true;
     }
 
-    size_t to_offset(const aoc::Point& p) const {
-      return p.first + (p.second * width);
+    size_t to_offset(const aoc::point& p) const {
+      return p.x + (p.y * width);
     }
 
-    size_t to_offset(size_t x, size_t y) const {
-      return to_offset(aoc::Point{x, y});
+    size_t to_offset(int32_t x, int32_t y) const {
+      return to_offset(aoc::point{x, y});
     }
 
-    std::vector<aoc::Point> generatePossibleMoves(aoc::Point pos, int64_t n) {
-      std::vector<aoc::Point> moves;
+    std::vector<aoc::point> generatePossibleMoves(aoc::point pos, int32_t n) {
+      std::vector<aoc::point> moves;
+
+      const auto end = exit();
 
       // only move is to go to the target
-      if (pos == (end - aoc::Point{0, 1})) {
+      if (pos == (end - aoc::point{0, 1})) {
         moves.emplace_back(end);
         return moves;
       }
 
       // try N, S, E, W and stationary
-      const std::vector<aoc::Point>DIRECTIONS{
+      const std::vector<aoc::point>DIRECTIONS{
         { 0, 0 },
         { 0, -1 },
         { 1, 0 },
@@ -169,7 +171,7 @@ namespace {
       std::vector<char> out;
       out.resize(width * height, '.');
 
-      const auto render_point = [&](const aoc::Point p, char c) {
+      const auto render_point = [&](const aoc::point p, char c) {
         const size_t off = to_offset(p);
         if (aoc::is_numeric(out[off])) {
           out[off]++;
@@ -181,7 +183,7 @@ namespace {
       };
       render_point(elves, 'E');
 
-      aoc::Point dims{width, height};
+      aoc::point dims{width, height};
       for (const auto& s : north) {
         const auto b = blizzard_pos(aoc::CardinalDirection::North, s, dims, n);
         render_point(b, '^');
@@ -199,8 +201,8 @@ namespace {
         render_point(b, '<');
       }
 
-      for (size_t y = 0; y < height; y++) {
-        for (size_t x = 0; x < width; x++) {
+      for (auto y = 0; y < height; y++) {
+        for (auto x = 0; x < width; x++) {
           const auto off = to_offset(x, y);
           if (out[off] == '.' && (y == 0 || x == 0 || y == height - 1 || x == width - 1)) {
             if ((x == 1 && y == 0) || (x == width - 2 && y == height - 1)) {
@@ -221,10 +223,10 @@ namespace {
     }
 
     int64_t step(size_t iteration) {
-      using PointStepPair = std::pair<aoc::Point, int64_t>;
+      using PointStepPair = std::pair<aoc::point, int64_t>;
       struct PointStepPairHash {
         std::size_t operator() (const PointStepPair& pair) const {
-          aoc::PointHash hasher{};
+          aoc::point_hash hasher{};
           std::size_t seed = hasher(pair.first);
           aoc::hash_combine(seed, pair.second);
           return seed;
@@ -240,10 +242,7 @@ namespace {
       std::priority_queue<PointStepPairPriority, std::vector<PointStepPairPriority>, PriorityComparator>queue;
       std::unordered_set<PointStepPair, PointStepPairHash>visited;
 
-      if (end == aoc::Point{-1, -1}) {
-        end = aoc::Point{width - 2, height - 1};
-      }
-
+      auto start = entrance();
       queue.emplace(PointStepPairPriority{PointStepPair{start, 0}, 0});
       while (!queue.empty()) {
         auto& top = queue.top();
@@ -253,7 +252,7 @@ namespace {
         DEBUG(std::this_thread::sleep_for(100ms));
         queue.pop();
 
-        if (item.first == end) {
+        if (item.first == exit()) {
           return item.second;
         }
 
@@ -262,10 +261,10 @@ namespace {
           PointStepPair psp{move, item.second + 1};
           const auto it = visited.emplace(std::move(psp));
           DEBUG_LOG(move, it.second);
-          if (it.second && item.second + 1 < 25) {
+          if (it.second) {
             psp.first = move;
             psp.second = item.second + 1;
-            const auto pri = aoc::manhattan(move, end) + item.second;
+            const auto pri = move.manhattan(exit()) + item.second;
             DEBUG_LOG(psp.first, psp.second, pri);
             queue.emplace(std::move(psp), pri);
           }
@@ -287,22 +286,22 @@ namespace {
     Map r;
     std::string_view line;
     while (aoc::getline(f, line)) {
-      assert(r.width == 0 || r.width == line.size());
+      assert(r.width == 0 || static_cast<size_t>(r.width) == line.size());
       r.width = line.size();
-      int64_t x = 0;
+      int32_t x = 0;
       for (const auto c : line) {
         switch (c) {
           case '<':
-            r.west.emplace_back(aoc::Point{x, r.height});
+            r.west.emplace_back(aoc::point{x, r.height});
             break;
           case '>':
-            r.east.emplace_back(aoc::Point{x, r.height});
+            r.east.emplace_back(aoc::point{x, r.height});
             break;
           case 'v':
-            r.south.emplace_back(aoc::Point{x, r.height});
+            r.south.emplace_back(aoc::point{x, r.height});
             break;
           case '^':
-            r.north.emplace_back(aoc::Point{x, r.height});
+            r.north.emplace_back(aoc::point{x, r.height});
             break;
           default:
             assert(c == '.' || c == '#');
@@ -338,7 +337,7 @@ int main(int argc, char** argv) {
   int64_t part1 = r.first.step(0);
 
 #if 0
-  for (r.second = 0; r.second < 10; r.second++) {
+  for (r.y = 0; r.y < 10; r.y++) {
     std::cout << aoc::cls << r << std::endl;
     std::this_thread::sleep_for(1s);
   }
