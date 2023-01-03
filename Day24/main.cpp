@@ -1,4 +1,5 @@
 #include "aoc/helpers.h"
+#include <array>
 #include <vector>
 #include <set>
 #include <unordered_set>
@@ -22,38 +23,49 @@ namespace {
 #<^v^^>#
 ######.#)");
   constexpr int SR_Part1 = 18;
-  constexpr int SR_Part2 = 0;
+  constexpr int SR_Part2 = 54;
 
   using Blizzards = std::vector<aoc::point>;
 
-  const auto blizzard_pos = [](aoc::CardinalDirection dir, const aoc::point p, const aoc::point dims, const size_t n) {
+  const auto blizzard_pos = [](aoc::CardinalDirection dir, const aoc::point p, const aoc::point dims, const int32_t n) {
     const auto grid_width = dims.x - 2;
     const auto grid_height = dims.y - 2;
-    const auto modx = n % grid_width;
-    const auto mody = n % grid_height;
 
-    aoc::point out{p};
+    // first make our position 0-based
+    aoc::point out{p - aoc::point{1, 1}};
 
+    // Now, step n times in the given direction
+    aoc::point step;
     switch(dir) {
       case aoc::CardinalDirection::North:
-        // pos.y = (init.y - 1 + grid_height - mody) % grid_height + 1
-        out.y = (p.y - 1 + grid_height - mody) % grid_height + 1;
+        step = aoc::point::up();
         break;
       case aoc::CardinalDirection::South:
-        //(init.y - 1 + mody) % grid_height + 1
-        out.y = (p.y - 1 + mody) % grid_height + 1;
+        step = aoc::point::down();
         break;
       case aoc::CardinalDirection::East:
-        //(init.x - 1 + modx) % grid_width + 1
-        out.x = (p.x - 1 + modx) % grid_width + 1;
+        step = aoc::point::right();
         break;
       case aoc::CardinalDirection::West:
-        // pos.x = (init.x - 1 + grid_width - modx) % grid_width + 1
-        out.x = (p.x - 1 + grid_width - modx) % grid_width + 1;
+        step = aoc::point::left();
         break;
       default:
         assert(false);
     }
+    out += (step * n);
+
+    // Now make it in bounds
+    while (out.x < 0) {
+      out.x += grid_width;
+    }
+    while (out.y < 0) {
+      out.y += grid_height;
+    }
+    out.x %= grid_width;
+    out.y %= grid_height;
+
+    // and make it 1-based
+    out += {1, 1};
 
     return out;
   };
@@ -85,45 +97,26 @@ namespace {
     }
 
     // determine if a given point is empty at this point in time
-    bool empty(aoc::point pt, size_t n) {
-
-      const int32_t grid_width = width - 2;
-      const int32_t grid_height = height - 2;
-      const int32_t modx = n % grid_width;
-      const int32_t mody = n % grid_height;
-
+    bool empty(aoc::point pt, int32_t n) {
       // point is in a wall
       if (is_wall(pt)) {
         return false;
       }
 
-      // east stepped n times.
-      // pos.x = (init.x - 1 + modx) % grid_width + 1
-      // => init.x = (pos.x - 1 + grid_width - modx) % grid_width + 1
-      aoc::point s{ (pt.x - 1 + grid_width - modx) % grid_width + 1, pt.y };
+      // for east (right) blizzards, go west from here:
+      aoc::point s = blizzard_pos(aoc::CardinalDirection::West, pt, { width, height}, n);
       auto it = std::find(east.begin(), east.end(), s);
       if (it != east.end()) { return false; }
 
-      // west stepped -n times
-      // pos.x = (init.x - 1 + grid_width - modx) % grid_width + 1
-      // => init.x = (pos.x - 1 + modx) % grid_width + 1
-      s.x = (pt.x - 1 + modx) % grid_width + 1;
+      s = blizzard_pos(aoc::CardinalDirection::East, pt, { width, height}, n);
       it = std::find(west.begin(), west.end(), s);
       if (it != west.end()) { return false; }
 
-      s.x = pt.x;
-
-      // south stepped n times
-      // pos.y = (init.y - 1 + mody) % grid_height + 1
-      // => init.y = (pos.y - 1 + grid_height - modx) % grid_height + 1
-      s.y = (pt.y - 1 + grid_height - modx) % grid_height + 1;
+      s = blizzard_pos(aoc::CardinalDirection::North, pt, { width, height}, n);
       it = std::find(south.begin(), south.end(), s);
       if (it != south.end()) { return false; }
 
-      // north stepped -n times
-      // pos.y = (init.y - 1 + grid_height - mody) % grid_height + 1
-      // => init.y = (pos.y - 1 + mody) % grid_height + 1
-      s.y = (pt.y - 1 + mody) % grid_height + 1;
+      s = blizzard_pos(aoc::CardinalDirection::South, pt, { width, height}, n);
       it = std::find(north.begin(), north.end(), s);
       if (it != north.end()) { return false; }
 
@@ -138,24 +131,22 @@ namespace {
       return to_offset(aoc::point{x, y});
     }
 
-    std::vector<aoc::point> generatePossibleMoves(aoc::point pos, int32_t n) {
+    std::vector<aoc::point> generatePossibleMoves(aoc::point pos, int32_t n, const aoc::point& end) {
       std::vector<aoc::point> moves;
 
-      const auto end = exit();
-
       // only move is to go to the target
-      if (pos == (end - aoc::point{0, 1})) {
+      if ((end == exit() && pos + aoc::point::down() == end) ||
+       (end == entrance() && pos + aoc::point::up() == end)) {
         moves.emplace_back(end);
         return moves;
       }
 
-      // try N, S, E, W and stationary
-      const std::vector<aoc::point>DIRECTIONS{
-        { 0, 0 },
-        { 0, -1 },
-        { 1, 0 },
-        { 0, 1 },
-        { -1, 0 },
+      constexpr std::array<aoc::point, 5>DIRECTIONS{
+        aoc::point::origin(),
+        aoc::point::up(),
+        aoc::point::right(),
+        aoc::point::down(),
+        aoc::point::left(),
       };
       for (const auto& dir : DIRECTIONS) {
         const auto pt = pos + dir;
@@ -167,7 +158,7 @@ namespace {
       return moves;
     }
 
-    std::ostream& print(std::ostream& os, size_t n) const {
+    std::ostream& print(std::ostream& os, int32_t n) const {
       std::vector<char> out;
       out.resize(width * height, '.');
 
@@ -222,8 +213,8 @@ namespace {
       return os;
     }
 
-    int64_t step(size_t iteration) {
-      using PointStepPair = std::pair<aoc::point, int64_t>;
+    int64_t walk_to(int32_t iteration, aoc::point end) {
+      using PointStepPair = std::pair<aoc::point, int32_t>;
       struct PointStepPairHash {
         std::size_t operator() (const PointStepPair& pair) const {
           aoc::point_hash hasher{};
@@ -240,32 +231,31 @@ namespace {
       };
 
       std::priority_queue<PointStepPairPriority, std::vector<PointStepPairPriority>, PriorityComparator>queue;
-      std::unordered_set<PointStepPair, PointStepPairHash>visited;
+      std::unordered_set<size_t>visited;
 
-      auto start = entrance();
-      queue.emplace(PointStepPairPriority{PointStepPair{start, 0}, 0});
+      queue.emplace(PointStepPairPriority{PointStepPair{elves, iteration}, 0});
       while (!queue.empty()) {
         auto& top = queue.top();
         auto item = top.first;
-        DEBUG(elves = item.first; print(std::cout, item.second); std::cout << std::endl);
-        DEBUG_LOG(top.second);
-        DEBUG(std::this_thread::sleep_for(100ms));
+        DEBUG_LOG(item.first, item.second, top.second, end);
         queue.pop();
 
-        if (item.first == exit()) {
+        if (item.first == end) {
+          elves = item.first;
           return item.second;
         }
 
-        const auto moves = generatePossibleMoves(item.first, iteration + item.second + 1);
+        const auto next_step = item.second + 1;
+
+        const auto moves = generatePossibleMoves(item.first, next_step, end);
         for (const auto& move : moves) {
-          PointStepPair psp{move, item.second + 1};
-          const auto it = visited.emplace(std::move(psp));
-          DEBUG_LOG(move, it.second);
+          PointStepPairHash hasher{};
+          PointStepPair psp{move, next_step};
+          const auto it = visited.emplace(hasher(psp));
           if (it.second) {
             psp.first = move;
-            psp.second = item.second + 1;
-            const auto pri = move.manhattan(exit()) + item.second;
-            DEBUG_LOG(psp.first, psp.second, pri);
+            psp.second = next_step;
+            const auto pri = move.manhattan(end) + item.second;
             queue.emplace(std::move(psp), pri);
           }
         }
@@ -275,7 +265,7 @@ namespace {
     }
   };
 
-  using State = std::pair<Map, size_t>;
+  using State = std::pair<Map, int32_t>;
 
   std::ostream& operator<<(std::ostream& os, const State& in) {
     const auto& m = in.first;
@@ -334,16 +324,15 @@ int main(int argc, char** argv) {
     r.first = LoadInput(f);
   }
 
-  int64_t part1 = r.first.step(0);
-
-#if 0
-  for (r.y = 0; r.y < 10; r.y++) {
-    std::cout << aoc::cls << r << std::endl;
-    std::this_thread::sleep_for(1s);
-  }
-#endif
-
-  int part2 = 0;
+  r.second = 0;
+  r.second += r.first.walk_to(r.second, r.first.exit());
+  DEBUG_LOG(r);
+  int32_t part1 = r.second;
+  r.second += r.first.walk_to(r.second, r.first.entrance());
+  DEBUG_LOG(r);
+  r.second += r.first.walk_to(r.second, r.first.exit());
+  DEBUG_LOG(r);
+  int32_t part2 = r.second;
 
   aoc::print_results(part1, part2);
 
