@@ -79,7 +79,7 @@ namespace aoc {
             return std::abs(x) + std::abs(y);
         }
 
-        constexpr inline int32_t manhattan(point const& o) const noexcept {
+        inline int32_t manhattan(point const& o) const noexcept {
             return (*this - o).abs();
         }
 

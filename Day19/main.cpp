@@ -62,7 +62,7 @@ Blueprint 2: Each ore robot costs 2 ore. Each clay robot costs 3 ore. Each obsid
   };
 
   const auto build = [](const MaterialSet& mineral, MaterialSet& bag) {
-    if (!canBuild) {
+    if (!canBuild(mineral, bag)) {
       return false;
     }
 

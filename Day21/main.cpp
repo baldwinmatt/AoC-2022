@@ -55,8 +55,11 @@ hmdt: 32
           return lhs - rhs;
           break;
         case Job::Shout:
-          throw std::runtime_error("Bad Input");
+          assert(false);
       }
+      assert(false);
+
+      return lhs;
     }
   };
 

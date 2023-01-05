@@ -50,6 +50,8 @@ namespace {
       case Direction::Up:
         return Direction::Left;
     }
+    assert(false);
+    return d;
   };
 
   const auto turnRight = [](const Direction d) {
@@ -63,6 +65,8 @@ namespace {
       case Direction::Up:
         return Direction::Right;
     }
+    assert(false);
+    return d;
   };
 
   const auto step = [](const aoc::Point pt, const Direction dir) {
@@ -76,6 +80,8 @@ namespace {
         case Direction::Left:
             return pt + aoc::Point{ -1, 0 };
     }
+    assert(false);
+    return pt;
   };
 
   std::ostream& operator<<(std::ostream& os, const Direction dir) {
