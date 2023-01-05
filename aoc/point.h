@@ -63,6 +63,8 @@ namespace aoc {
             return point{x / v, y / v};
         }
 
+        friend constexpr inline bool operator==(aoc::point const& l, aoc::point const& r);
+        friend constexpr inline bool operator!=(aoc::point const& l, aoc::point const& r);
         friend constexpr inline bool operator<(aoc::point const& l, aoc::point const& r);
         friend constexpr inline bool operator>(aoc::point const& l, aoc::point const& r);
         friend constexpr inline bool operator<=(aoc::point const& l, aoc::point const& r);
@@ -132,6 +134,9 @@ namespace aoc {
     }
     constexpr inline bool operator==(aoc::point const& l, aoc::point const& r) {
         return l.x == r.x && l.y == r.y;
+    }
+    constexpr inline bool operator!=(aoc::point const& l, aoc::point const& r) {
+        return l.x != r.x || l.y != r.y;
     }
     constexpr inline int cmp(aoc::point const& l, aoc::point const& r) {
         return l < r ? -1 : // less

@@ -25,7 +25,7 @@ namespace {
   constexpr int SR_Part1 = 18;
   constexpr int SR_Part2 = 54;
 
-  using Blizzards = std::vector<aoc::point>;
+  using Blizzards = aoc::PointSet;
 
   const auto blizzard_pos = [](aoc::CardinalDirection dir, const aoc::point p, const aoc::point dims, const int32_t n) {
     const auto grid_width = dims.x - 2;
@@ -89,15 +89,16 @@ namespace {
     }
 
     bool is_wall(aoc::point const& p) const {
-      const auto start = entrance();
-      const auto end = exit();
-      
-      return (p.x <= 0 || p.x >= width - 1 || p.y <= 0 || p.y >= height) &&
-        !(p == start || p == end);
+      return (p.x <= 0 || p.x >= width - 1 || p.y <= 0 || p.y >= height);
     }
 
     // determine if a given point is empty at this point in time
     bool empty(aoc::point pt, int32_t n) {
+      const auto start = entrance();
+      const auto end = exit();
+      if (pt == start || pt == end) {
+        return true;
+      }
       // point is in a wall
       if (is_wall(pt)) {
         return false;
@@ -105,19 +106,19 @@ namespace {
 
       // for east (right) blizzards, go west from here:
       aoc::point s = blizzard_pos(aoc::CardinalDirection::West, pt, { width, height}, n);
-      auto it = std::find(east.begin(), east.end(), s);
+      auto it = east.find(s);
       if (it != east.end()) { return false; }
 
       s = blizzard_pos(aoc::CardinalDirection::East, pt, { width, height}, n);
-      it = std::find(west.begin(), west.end(), s);
+      it = west.find(s);
       if (it != west.end()) { return false; }
 
       s = blizzard_pos(aoc::CardinalDirection::North, pt, { width, height}, n);
-      it = std::find(south.begin(), south.end(), s);
+      it = south.find(s);
       if (it != south.end()) { return false; }
 
       s = blizzard_pos(aoc::CardinalDirection::South, pt, { width, height}, n);
-      it = std::find(north.begin(), north.end(), s);
+      it = north.find(s);
       if (it != north.end()) { return false; }
 
       return true;
@@ -229,16 +230,14 @@ namespace {
           return l.second > r.second;
         }
       };
+      PointStepPairHash hasher{};
 
       std::priority_queue<PointStepPairPriority, std::vector<PointStepPairPriority>, PriorityComparator>queue;
       std::unordered_set<size_t>visited;
 
       queue.emplace(PointStepPairPriority{PointStepPair{elves, iteration}, 0});
       while (!queue.empty()) {
-        auto& top = queue.top();
-        auto item = top.first;
-        DEBUG_LOG(item.first, item.second, top.second, end);
-        queue.pop();
+        auto item = queue.top().first; queue.pop();
 
         if (item.first == end) {
           elves = item.first;
@@ -246,18 +245,15 @@ namespace {
         }
 
         const auto next_step = item.second + 1;
-
         const auto moves = generatePossibleMoves(item.first, next_step, end);
         for (const auto& move : moves) {
-          PointStepPairHash hasher{};
-          PointStepPair psp{move, next_step};
-          const auto it = visited.emplace(hasher(psp));
-          if (it.second) {
-            psp.first = move;
-            psp.second = next_step;
-            const auto pri = move.manhattan(end) + item.second;
-            queue.emplace(std::move(psp), pri);
-          }
+          PointStepPair move_step{move, next_step};
+          const auto it = visited.emplace(hasher(move_step));
+          if (!it.second) { continue; }
+
+          const auto pri = move.manhattan(end) + next_step;
+          DEBUG_LOG(move_step.first, move_step.second, pri);
+          queue.emplace(move_step, pri);
         }
       }
       assert(false);
@@ -282,16 +278,16 @@ namespace {
       for (const auto c : line) {
         switch (c) {
           case '<':
-            r.west.emplace_back(aoc::point{x, r.height});
+            r.west.emplace(aoc::point{x, r.height});
             break;
           case '>':
-            r.east.emplace_back(aoc::point{x, r.height});
+            r.east.emplace(aoc::point{x, r.height});
             break;
           case 'v':
-            r.south.emplace_back(aoc::point{x, r.height});
+            r.south.emplace(aoc::point{x, r.height});
             break;
           case '^':
-            r.north.emplace_back(aoc::point{x, r.height});
+            r.north.emplace(aoc::point{x, r.height});
             break;
           default:
             assert(c == '.' || c == '#');
@@ -301,11 +297,6 @@ namespace {
       }
       r.height++;
     }
-
-    std::sort(r.north.begin(), r.north.end());
-    std::sort(r.east.begin(), r.east.end());
-    std::sort(r.south.begin(), r.south.end());
-    std::sort(r.west.begin(), r.west.end());
 
     return r;
   };
@@ -328,9 +319,9 @@ int main(int argc, char** argv) {
   r.second += r.first.walk_to(r.second, r.first.exit());
   DEBUG_LOG(r);
   int32_t part1 = r.second;
-  r.second += r.first.walk_to(r.second, r.first.entrance());
+  r.second = r.first.walk_to(r.second, r.first.entrance());
   DEBUG_LOG(r);
-  r.second += r.first.walk_to(r.second, r.first.exit());
+  r.second = r.first.walk_to(r.second, r.first.exit());
   DEBUG_LOG(r);
   int32_t part2 = r.second;
 
